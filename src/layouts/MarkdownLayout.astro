@@ -1,0 +1,166 @@
+---
+import Layout from './Layout.astro';
+import Header from '../components/Header.astro';
+import NewsMarquee from '../components/NewsMarquee.astro';
+
+const { frontmatter } = Astro.props;
+---
+
+<Layout title={frontmatter.title} description={frontmatter.description}>
+  <div class="min-h-screen bg-white">
+    <NewsMarquee />
+    <Header />
+    <main class="max-w-4xl mx-auto px-4 py-12">
+      <article class="prose prose-lg max-w-none">
+        <slot />
+      </article>
+    </main>
+  </div>
+</Layout>
+
+<style is:global>
+  /* Base Typography */
+  .prose {
+    color: #1a1a1a;
+    max-width: 65ch;
+    margin: 0 auto;
+  }
+
+  /* Headings */
+  .prose h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 2rem;
+    color: #0D132D;
+    border-bottom: 4px solid #0D132D;
+    padding-bottom: 0.5rem;
+  }
+
+  .prose h2 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+    color: #0D132D;
+  }
+
+  .prose h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: #0D132D;
+  }
+
+  /* Lists */
+  .prose ul {
+    list-style-type: none;
+    padding-left: 1.5rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .prose ul li {
+    position: relative;
+    padding-left: 1.75rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+  }
+
+  .prose ul li::before {
+    content: "•";
+    color: #0D132D;
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+
+  /* Paragraphs */
+  .prose p {
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
+    line-height: 1.8;
+    color: #374151;
+  }
+
+  /* Links */
+  .prose a {
+    color: #2563eb;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+  }
+
+  .prose a:hover {
+    border-bottom-color: #2563eb;
+  }
+
+  /* Blockquotes */
+  .prose blockquote {
+    border-left: 4px solid #0D132D;
+    padding-left: 1.5rem;
+    margin-left: 0;
+    margin-right: 0;
+    font-style: italic;
+    color: #4b5563;
+  }
+
+  /* Code blocks */
+  .prose code {
+    background-color: #f3f4f6;
+    padding: 0.2em 0.4em;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+    color: #0D132D;
+  }
+
+  .prose pre {
+    background-color: #1f2937;
+    color: #f3f4f6;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+  }
+
+  .prose pre code {
+    background-color: transparent;
+    padding: 0;
+    color: inherit;
+  }
+
+  /* Tables */
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+  }
+
+  .prose th {
+    background-color: #f8fafc;
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem;
+    border-bottom: 2px solid #0D132D;
+  }
+
+  .prose td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .prose tr:hover {
+    background-color: #f8fafc;
+  }
+
+  /* Custom spacing */
+  .prose > :first-child {
+    margin-top: 0;
+  }
+
+  .prose > :last-child {
+    margin-bottom: 0;
+  }
+</style>

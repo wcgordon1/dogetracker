@@ -1,0 +1,110 @@
+---
+// No server-side code needed
+---
+
+<div class="bg-[#0D132D] text-white p-2 overflow-hidden">
+  <div class="marquee">
+    <div id="marquee-content" class="marquee-content opacity-0 transition-opacity duration-300">
+      <a href="#" class="mx-8">Loading latest Doge news...</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const CACHE_KEY = 'rss_news_cache';
+  const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours
+
+  function showCachedNews() {
+    const content = document.getElementById('marquee-content');
+    if (!content) return;
+
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < CACHE_DURATION) {
+        updateMarquee(data);
+        content.classList.remove('opacity-0');
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async function fetchNews() {
+    const content = document.getElementById('marquee-content');
+    if (!content) return;
+
+    try {
+      const response = await import('../lib/rss');
+      const news = await response.fetchRSSFeed();
+      const headlines = news.slice(0, 10).map(item => ({
+        text: item.title,
+        link: item.link
+      }));
+
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        data: headlines,
+        timestamp: Date.now()
+      }));
+
+      updateMarquee(headlines);
+      content.classList.remove('opacity-0');
+    } catch (error) {
+      console.error('Failed to fetch news:', error);
+      content.classList.remove('opacity-0');
+    }
+  }
+
+  function updateMarquee(news) {
+    const content = document.getElementById('marquee-content');
+    if (!content) return;
+
+    const newsHtml = news.map(item => `
+      <a
+        href="${item.link}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="mx-8 hover:text-blue-300 transition-colors"
+      >
+        ${item.text} •
+      </a>
+    `).join('');
+
+    content.innerHTML = newsHtml + newsHtml; // Double for continuous scroll
+  }
+
+  // Show cached news immediately
+  const hasCachedNews = showCachedNews();
+  
+  // Fetch new news in the background if needed
+  if (!hasCachedNews) {
+    requestIdleCallback(() => fetchNews());
+  } else {
+    // Update cache in background after 12 hours
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    if (Date.now() - (cached.timestamp || 0) > CACHE_DURATION) {
+      requestIdleCallback(() => fetchNews());
+    }
+  }
+</script>
+
+<style>
+  .marquee {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .marquee-content {
+    display: inline-block;
+    white-space: nowrap;
+    animation: marquee 120s linear infinite;
+    position: relative;
+    transform: translateX(0);
+  }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+</style>

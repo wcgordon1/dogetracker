@@ -1,0 +1,15 @@
+---
+interface Props {
+  width?: string;
+  height?: string;
+}
+
+const { width = "w-18", height = "h-18" } = Astro.props;
+---
+<div class="flex justify-center p-8 bg-white">
+  <img 
+    src="/doge.jpg" 
+    alt="Department of Government Efficiency" 
+    class={`${width} ${height} rounded-lg shadow-lg`}
+  />
+</div>

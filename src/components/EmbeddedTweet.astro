@@ -1,0 +1,43 @@
+---
+const tweetId = "1881547272556777647";
+const oembedUrl = `https://publish.twitter.com/oembed?url=https://twitter.com/elonmusk/status/${tweetId}&omit_script=true`;
+
+let tweetHtml = "";
+try {
+  const response = await fetch(oembedUrl);
+  if (response.ok) {
+    const data = await response.json();
+    tweetHtml = data.html;
+  }
+} catch (error) {
+  console.error('Error fetching tweet:', error);
+}
+---
+
+<div class="flex justify-center py-8">
+  <div set:html={tweetHtml} />
+</div>
+
+<script>
+  // Function to load Twitter widgets
+  window.twttr = (function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0],
+      t = window.twttr || {};
+    if (d.getElementById(id)) return t;
+    js = d.createElement(s);
+    js.id = id;
+    js.src = "https://platform.twitter.com/widgets.js";
+    js.async = true;
+    fjs.parentNode.insertBefore(js, fjs);
+    t._e = [];
+    t.ready = function(f) {
+      t._e.push(f);
+    };
+    return t;
+  }(document, "script", "twitter-wjs"));
+
+  // Force widget load if needed
+  if (window.twttr && window.twttr.widgets) {
+    window.twttr.widgets.load();
+  }
+</script>

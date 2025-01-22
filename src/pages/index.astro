@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import NewsMarquee from '../components/NewsMarquee.astro';
+import StatsCounter from '../components/StatsCounter.astro';
+import MainImage from '../components/MainImage.astro';
+import LatestNews from '../components/LatestNews.astro';
+import EmbeddedTweet from '../components/EmbeddedTweet.astro';
+---
+
+<Layout 
+  title="Tracking Government Efficiency"
+  description="DogeTracker.org monitors and tracks government efficiency metrics including spending saved, positions eliminated, departments reduced, and lawsuits filed."
+>
+  <div class="min-h-screen bg-white">
+    <NewsMarquee />
+    <MainImage width="w-48" height="h-48" />
+    <Header />
+    <StatsCounter />
+    <EmbeddedTweet />
+    <LatestNews />
+  </div>
+</Layout>
