@@ -2,7 +2,7 @@
 // No server-side code needed
 ---
 
-<div class="bg-[#0D132D] text-white p-2 w-full overflow-hidden">
+<div class="bg-[#0D132D] text-white p-2 w-screen max-w-full overflow-hidden">
   <div class="marquee">
     <div id="marquee-content" class="marquee-content opacity-0 transition-opacity duration-300">
       Loading latest Doge news...
@@ -84,15 +84,17 @@
 
 <style>
   .marquee {
-    width: 100%;
+    width: 100vw;
+    max-width: 100%;
     overflow: hidden;
+    position: relative;
   }
 
   .marquee-content {
     display: inline-block;
     white-space: nowrap;
     animation: marquee 320s linear infinite;
-    padding-left: 100%;
+    padding-left: 100vw;
   }
 
   @keyframes marquee {
