@@ -9,21 +9,25 @@ export interface Article {
 }
 
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
-const RSS_URL = 'https://news.google.com/rss/search?q=doge';
+const RSS_URL = 'https://news.google.com/rss/search?q=doge&hl=en-US&gl=US&ceid=US:en';
 
 function parseXMLDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString();
 }
 
-function cleanHTML(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, '') // Remove HTML tags
-    .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
-    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-    .trim();
+function extractTextContent(element: Element, tagName: string): string {
+  const node = element.querySelector(tagName);
+  return node?.textContent ?? '';
 }
 
-export async function fetchRSSFeed(): Promise<Article[]> {
+function isWithinLastWeek(dateStr: string): boolean {
+  const articleDate = new Date(dateStr);
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  return articleDate >= weekAgo;
+}
+
+export async function fetchRSSFeed() {
   try {
     const response = await fetch(CORS_PROXY + encodeURIComponent(RSS_URL));
     if (!response.ok) {
@@ -31,31 +35,26 @@ export async function fetchRSSFeed(): Promise<Article[]> {
     }
 
     const xmlText = await response.text();
-    const parser = new XMLParser({
-      ignoreAttributes: false,
-      attributeNamePrefix: "@_"
-    });
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
     
-    const result = parser.parse(xmlText);
-    const items = result.rss.channel.item;
-
+    const items = Array.from(xmlDoc.querySelectorAll('item'));
+    
     return items
-      .map((item: any) => ({
-        title: cleanHTML(item.title || ''),
-        link: item.link || '',
-        pubDate: parseXMLDate(item.pubDate),
-        source: typeof item.source === 'object' ? item.source['#text'] : (item.source || 'Google News'),
-        description: cleanHTML(item.description || '')
+      .map(item => ({
+        title: extractTextContent(item, 'title'),
+        link: extractTextContent(item, 'link'),
+        pubDate: extractTextContent(item, 'pubDate'),
+        source: extractTextContent(item, 'source') || 'Google News',
+        description: extractTextContent(item, 'description'),
       }))
-      .filter((article: Article) => {
-        const articleDate = new Date(article.pubDate);
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return articleDate >= weekAgo;
-      })
-      .slice(0, 50);
+      .filter(article => isWithinLastWeek(article.pubDate))
+      .map(article => ({
+        ...article,
+        pubDate: parseXMLDate(article.pubDate),
+      }));
   } catch (error) {
     console.error('Error fetching RSS feed:', error);
-    return [];
+    throw error;
   }
 }

@@ -11,43 +11,35 @@
 </div>
 
 <script>
-  const CACHE_KEY = 'rss_news_cache';
+  const CACHE_KEY = 'doge_news_cache';
   const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours
 
-  function showCachedNews() {
-    const content = document.getElementById('marquee-content');
-    if (!content) return;
-
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-      const { data, timestamp } = JSON.parse(cached);
-      if (Date.now() - timestamp < CACHE_DURATION) {
-        updateMarquee(data);
-        content.classList.remove('opacity-0');
-        return true;
-      }
-    }
-    return false;
-  }
-
-  async function fetchNews() {
+  async function fetchAndUpdateNews() {
     const content = document.getElementById('marquee-content');
     if (!content) return;
 
     try {
-      const response = await import('../lib/rss');
-      const news = await response.fetchRSSFeed();
-      const headlines = news.slice(0, 10).map(item => ({
-        text: item.title,
-        link: item.link
-      }));
+      // Check cache first
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+          updateMarquee(data);
+          content.classList.remove('opacity-0');
+          return;
+        }
+      }
 
+      const { fetchRSSFeed } = await import('../lib/rss');
+      const news = await fetchRSSFeed();
+      
+      // Cache the results
       localStorage.setItem(CACHE_KEY, JSON.stringify({
-        data: headlines,
+        data: news,
         timestamp: Date.now()
       }));
 
-      updateMarquee(headlines);
+      updateMarquee(news);
       content.classList.remove('opacity-0');
     } catch (error) {
       console.error('Failed to fetch news:', error);
@@ -66,25 +58,18 @@
         rel="noopener noreferrer"
         class="mx-8 hover:text-blue-300 transition-colors"
       >
-        ${item.text} •
+        ${item.title} •
       </a>
     `).join('');
 
     content.innerHTML = newsHtml + newsHtml; // Double for continuous scroll
   }
 
-  // Show cached news immediately
-  const hasCachedNews = showCachedNews();
-  
-  // Fetch new news in the background if needed
-  if (!hasCachedNews) {
-    requestIdleCallback(() => fetchNews());
+  // Initialize as soon as possible
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fetchAndUpdateNews);
   } else {
-    // Update cache in background after 12 hours
-    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
-    if (Date.now() - (cached.timestamp || 0) > CACHE_DURATION) {
-      requestIdleCallback(() => fetchNews());
-    }
+    fetchAndUpdateNews();
   }
 </script>
 
@@ -98,7 +83,7 @@
   .marquee-content {
     display: inline-block;
     white-space: nowrap;
-    animation: marquee 120s linear infinite;
+    animation: marquee 580s linear infinite;
     position: relative;
     transform: translateX(0);
   }

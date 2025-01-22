@@ -1,5 +1,5 @@
 ---
-// Remove server-side fetch to allow instant page load
+// No server-side code needed
 ---
 
 <section class="py-12 px-4 bg-gray-50">
@@ -20,50 +20,99 @@
 </section>
 
 <script>
+  const CACHE_KEY = 'doge_news_grid_cache';
+  const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours
+
   async function loadNews() {
     const gridElement = document.getElementById('news-grid');
     if (!gridElement) return;
 
     try {
+      // Check cache first
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+          updateGrid(data);
+          return;
+        }
+      }
+
       const { fetchRSSFeed } = await import('../lib/rss');
       const news = await fetchRSSFeed();
 
-      const newsHtml = news.map(item => `
-        <a 
-          href="${item.link}"
-          target="_blank" 
-          rel="noopener noreferrer" 
-          class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden"
-        >
-          <article class="p-6">
-            <h3 class="text-lg font-semibold text-[#0D132D] mb-3 line-clamp-2 hover:text-blue-600">
-              ${item.title}
-            </h3>
-            <p class="text-sm text-gray-600 mb-3 line-clamp-4">
-              ${item.description}
-            </p>
-            <div class="text-sm flex items-center gap-2">
-              <span class="font-bold text-[#0D132D]">${item.source}</span>
-              <span class="text-gray-500">• ${item.pubDate}</span>
-            </div>
-          </article>
-        </a>
-      `).join('');
+      // Cache the results
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        data: news,
+        timestamp: Date.now()
+      }));
 
-      gridElement.innerHTML = newsHtml;
+      updateGrid(news);
     } catch (error) {
       console.error('Failed to load news:', error);
-      if (gridElement) {
-        gridElement.innerHTML = `
-          <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center text-gray-600">
-            Failed to load news. Please try again later.
-          </div>
-        `;
-      }
+      showError(gridElement);
     }
   }
 
-  // Load news when the page is ready
+  function updateGrid(news) {
+    const gridElement = document.getElementById('news-grid');
+    if (!gridElement) return;
+
+    // More strict filtering and get up to 50 valid items
+    const validNews = news
+      .filter(item => 
+        item.title?.trim() && 
+        item.description?.trim() && 
+        item.link?.trim() &&
+        item.source?.trim() &&
+        item.pubDate?.trim()
+      )
+      .map(item => ({
+        ...item,
+        description: item.description.replace(/<[^>]*>/g, '').trim() // Remove HTML tags
+      }))
+      .slice(0, 50); // Changed from 6 to 50
+
+    // Only render if we have valid items
+    if (validNews.length === 0) {
+      showError(gridElement);
+      return;
+    }
+
+    const newsHtml = validNews.map(item => `
+      <a 
+        href="${item.link}"
+        target="_blank" 
+        rel="noopener noreferrer" 
+        class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden"
+      >
+        <article class="p-6">
+          <h3 class="text-lg font-semibold text-[#0D132D] mb-3 line-clamp-2 hover:text-blue-600">
+            ${item.title}
+          </h3>
+          <p class="text-sm text-gray-600 mb-3 line-clamp-4">
+            ${item.description}
+          </p>
+          <div class="text-sm flex items-center gap-2">
+            <span class="font-bold text-[#0D132D]">${item.source}</span>
+            <span class="text-gray-500">• ${item.pubDate}</span>
+          </div>
+        </article>
+      </a>
+    `).join('');
+
+    gridElement.innerHTML = newsHtml;
+  }
+
+  function showError(element) {
+    element.innerHTML = `
+      <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center text-gray-600">
+        Failed to load news. Please try again later.
+      </div>
+    `;
+  }
+
+  // Initialize as soon as possible
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', loadNews);
   } else {
