@@ -2,10 +2,10 @@
 // No server-side code needed
 ---
 
-<div class="bg-[#0D132D] text-white p-2 overflow-hidden">
+<div class="bg-[#0D132D] text-white p-2 w-full overflow-hidden">
   <div class="marquee">
     <div id="marquee-content" class="marquee-content opacity-0 transition-opacity duration-300">
-      <a href="#" class="mx-8">Loading latest Doge news...</a>
+      Loading latest Doge news...
     </div>
   </div>
 </div>
@@ -14,7 +14,11 @@
   const CACHE_KEY = 'doge_news_cache';
   const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours
 
-  async function fetchAndUpdateNews() {
+  function sanitizeText(text) {
+    return text.replace(/<[^>]*>/g, '').trim();
+  }
+
+  async function loadAndUpdateNews() {
     const content = document.getElementById('marquee-content');
     if (!content) return;
 
@@ -33,13 +37,22 @@
       const { fetchRSSFeed } = await import('../lib/rss');
       const news = await fetchRSSFeed();
       
+      // Filter and prepare news items
+      const validNews = news
+        .filter(item => item.title && item.link)
+        .slice(0, 10)
+        .map(item => ({
+          title: sanitizeText(item.title),
+          link: item.link
+        }));
+
       // Cache the results
       localStorage.setItem(CACHE_KEY, JSON.stringify({
-        data: news,
+        data: validNews,
         timestamp: Date.now()
       }));
 
-      updateMarquee(news);
+      updateMarquee(validNews);
       content.classList.remove('opacity-0');
     } catch (error) {
       console.error('Failed to fetch news:', error);
@@ -49,47 +62,45 @@
 
   function updateMarquee(news) {
     const content = document.getElementById('marquee-content');
-    if (!content) return;
+    if (!content || !Array.isArray(news) || news.length === 0) return;
 
-    const newsHtml = news.map(item => `
-      <a
-        href="${item.link}"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="mx-8 hover:text-blue-300 transition-colors"
-      >
+    const newsHtml = news.map(item => 
+      `<a href="${item.link}" target="_blank" rel="noopener noreferrer" class="mx-8 hover:text-blue-300 transition-colors">
         ${item.title} •
-      </a>
-    `).join('');
+      </a>`
+    ).join('');
 
-    content.innerHTML = newsHtml + newsHtml; // Double for continuous scroll
+    content.innerHTML = newsHtml;
   }
 
-  // Initialize as soon as possible
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fetchAndUpdateNews);
-  } else {
-    fetchAndUpdateNews();
+  function clearCache() {
+    localStorage.removeItem(CACHE_KEY);
   }
+
+  // Call it before loading news
+  clearCache();
+  loadAndUpdateNews();
 </script>
 
 <style>
   .marquee {
     width: 100%;
     overflow: hidden;
-    position: relative;
   }
 
   .marquee-content {
     display: inline-block;
     white-space: nowrap;
-    animation: marquee 580s linear infinite;
-    position: relative;
-    transform: translateX(0);
+    animation: marquee 320s linear infinite;
+    padding-left: 100%;
   }
 
   @keyframes marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-200%); }
+  }
+
+  .marquee-content:hover {
+    animation-play-state: paused;
   }
 </style>

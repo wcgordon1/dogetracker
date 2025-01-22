@@ -2,8 +2,8 @@
 // No server-side code needed
 ---
 
-<section class="py-12 px-4 bg-gray-50">
-  <div class="max-w-7xl mx-auto">
+<section class="py-12 px-4 bg-gray-50 w-full">
+  <div class="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <h2 class="text-2xl font-bold text-center text-[#0D132D] mb-8">Latest Doge News</h2>
     <div id="news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div class="flex items-center justify-center col-span-1 md:col-span-2 lg:col-span-3 py-12">
@@ -23,31 +23,43 @@
   const CACHE_KEY = 'doge_news_grid_cache';
   const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours
 
+  function clearCache() {
+    localStorage.removeItem(CACHE_KEY);
+  }
+
   async function loadNews() {
     const gridElement = document.getElementById('news-grid');
     if (!gridElement) return;
 
     try {
-      // Check cache first
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < CACHE_DURATION) {
-          updateGrid(data);
-          return;
-        }
-      }
+      // Clear cache first to get fresh results
+      clearCache();
 
       const { fetchRSSFeed } = await import('../lib/rss');
       const news = await fetchRSSFeed();
+      
+      // Filter and prepare news items
+      const validNews = news
+        .filter(item => 
+          item.title?.trim() && 
+          item.description?.trim() && 
+          item.link?.trim() &&
+          item.source?.trim() &&
+          item.pubDate?.trim()
+        )
+        .map(item => ({
+          ...item,
+          description: item.description.replace(/<[^>]*>/g, '').trim() // Remove HTML tags
+        }))
+        .slice(0, 50);
 
       // Cache the results
       localStorage.setItem(CACHE_KEY, JSON.stringify({
-        data: news,
+        data: validNews,
         timestamp: Date.now()
       }));
 
-      updateGrid(news);
+      updateGrid(validNews);
     } catch (error) {
       console.error('Failed to load news:', error);
       showError(gridElement);
